@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { Users,Tenants } from '../../db/couch.js';
+import { hashPwd,checkPwd,signToken } from '../../services/auth.service.js';
+import { requireAuth } from '../middleware/auth.js';
+const r=Router();
+r.post('/login',async(req,res)=>{const{email,password}=req.body;if(!email||!password)return res.status(400).json({error:'Email and password required'});const u=await Users.byEmail(email);if(!u||!u.is_active)return res.status(401).json({error:'Invalid credentials'});if(!await checkPwd(password,u.hashed_password))return res.status(401).json({error:'Invalid credentials'});await Users.update(u._id,{last_login:new Date().toISOString()});const token=signToken({sub:u._id,role:u.role,tenant_id:u.tenant_id});res.json({token,user:{id:u._id,email:u.email,full_name:u.full_name,role:u.role,tenant_id:u.tenant_id}});});
+r.post('/setup',async(req,res)=>{const{email,password,full_name='Administrator',role='admin'}=req.body;if(!email||!password||password.length<8)return res.status(400).json({error:'Valid email and password (8+ chars) required'});if(await Users.byEmail(email))return res.status(409).json({error:'User already exists'});let t=await Tenants.bySlug('default');if(!t)t=await Tenants.create({name:'Default Organization',slug:'default'});const u=await Users.create({email,hashed_password:await hashPwd(password),full_name,role,tenant_id:t._id});res.status(201).json({id:u._id,email:u.email,role:u.role});});
+r.get('/me',requireAuth,(req,res)=>{const{hashed_password,...safe}=req.user;res.json(safe);});
+r.post('/change-password',requireAuth,async(req,res)=>{const{current_password,new_password}=req.body;if(!await checkPwd(current_password,req.user.hashed_password))return res.status(401).json({error:'Current password incorrect'});if(!new_password||new_password.length<8)return res.status(400).json({error:'Password must be 8+ chars'});await Users.update(req.user._id,{hashed_password:await hashPwd(new_password)});res.json({message:'Password updated'});});
+export default r;

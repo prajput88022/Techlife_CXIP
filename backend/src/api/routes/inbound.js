@@ -1,0 +1,15 @@
+import express,{ Router } from 'express';
+import crypto from 'crypto';
+import { Calls,DB } from '../../db/couch.js';
+import { addAudioJob } from '../../workers/queues.js';
+import logger from '../../utils/logger.js';
+const r=Router();
+r.use(express.raw({type:'application/json',limit:'5mb'}));
+r.use((req,res,next)=>{if(Buffer.isBuffer(req.body)){req.rawBody=req.body;try{req.body=JSON.parse(req.body.toString());}catch{req.body={};}}next();});
+r.post('/twilio/recording-complete',async(req,res)=>{const{RecordingUrl,CallSid,RecordingDuration,From,To}=req.body;if(!RecordingUrl)return res.status(400).send('Missing RecordingUrl');logger.info(`Twilio: ${CallSid}`);const call=await Calls.create({source_system:'twilio',external_id:CallSid,audio_url:RecordingUrl+'.mp3',duration_seconds:parseInt(RecordingDuration)||0,caller_number:From,callee_number:To,channel:'call',stt_provider:process.env.STT_PROVIDER||'whisper',llm_provider:process.env.LLM_PROVIDER||'openai'});await addAudioJob({call_id:call._id,audio_url:RecordingUrl+'.mp3'});res.status(200).send('<Response></Response>');});
+r.post('/zendesk/ticket',async(req,res)=>{const{ticket}=req.body;if(!ticket)return res.status(400).json({error:'Missing ticket'});await Calls.create({source_system:'zendesk',external_id:String(ticket.id),channel:'ticket',subject:ticket.subject,raw_text:ticket.description,customer_email:ticket.requester?.email,stt_provider:'none',llm_provider:process.env.LLM_PROVIDER||'openai'});res.json({received:true});});
+r.post('/freshdesk/ticket',async(req,res)=>{const w=req.body?.freshdesk_webhook||{};await Calls.create({source_system:'freshdesk',external_id:String(w.ticket_id||''),channel:'ticket',subject:w.ticket_subject,raw_text:w.ticket_description,customer_email:w.requester_email,stt_provider:'none',llm_provider:process.env.LLM_PROVIDER||'openai'});res.json({received:true});});
+r.post('/salesforce/case',async(req,res)=>{const{CaseId,Subject,Description,ContactEmail}=req.body;await Calls.create({source_system:'salesforce',external_id:CaseId,channel:'ticket',subject:Subject,raw_text:Description,customer_email:ContactEmail,stt_provider:'none',llm_provider:process.env.LLM_PROVIDER||'openai'});res.json({received:true});});
+r.post('/custom',async(req,res)=>{const{event,data,source}=req.body;await DB.create('webhook_logs',{type:'inbound',source:source||'custom',event:event||'unknown',data,received_at:new Date().toISOString()});res.json({received:true});});
+r.post('/test',(req,res)=>{const raw=req.rawBody||Buffer.from(JSON.stringify(req.body));const secret=process.env.WEBHOOK_SECRET||'';const sig=req.headers['x-cxip-signature']||'';const expected='sha256='+crypto.createHmac('sha256',secret).update(raw).digest('hex');res.json({received:true,signature_valid:!sig||sig===expected,body:req.body,timestamp:new Date().toISOString()});});
+export default r;

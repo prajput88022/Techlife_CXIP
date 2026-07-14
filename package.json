@@ -1,0 +1,12 @@
+{
+  "name": "techlife-cxip",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build":  "cd frontend && npm run build",
+    "start":  "cd backend && npm start",
+    "dev:api": "cd backend && npm run dev",
+    "dev:front": "cd frontend && npm run dev"
+  }
+}

@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { APIKeys } from '../../db/couch.js';
+import { requireAuth } from '../middleware/auth.js';
+const r=Router();r.use(requireAuth);
+r.get('/',async(req,res)=>{const k=await APIKeys.byTenant(req.tenantId);res.json(k.map(x=>({...x,key_hash:undefined})));});
+r.post('/',async(req,res)=>{const{name,permissions=['*'],expires_in_days}=req.body;if(!name)return res.status(400).json({error:'name required'});const raw='cxip_'+crypto.randomBytes(32).toString('hex');const key_hash=await bcrypt.hash(raw,10);const expiresAt=expires_in_days?new Date(Date.now()+expires_in_days*86400000).toISOString():null;const k=await APIKeys.create({tenant_id:req.tenantId,created_by:req.user._id,name,permissions,key_hash,key_prefix:raw.slice(0,12)+'...',expires_at:expiresAt});res.status(201).json({id:k._id,name:k.name,key:raw,key_prefix:k.key_prefix,permissions:k.permissions,expires_at:k.expires_at,warning:'Save this key now — never shown again.'});});
+r.delete('/:id',async(req,res)=>{await APIKeys.revoke(req.params.id);res.json({revoked:true});});
+export default r;

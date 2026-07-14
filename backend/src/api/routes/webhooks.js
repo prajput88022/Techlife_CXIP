@@ -1,0 +1,17 @@
+import { Router } from 'express';
+import crypto from 'crypto';
+import { Webhooks,WebhookLogs } from '../../db/couch.js';
+import { requireAuth } from '../middleware/auth.js';
+import { dispatchEvent,EVENTS } from '../../services/webhook.service.js';
+const r=Router();r.use(requireAuth);
+const VALID=Object.values(EVENTS);
+r.get('/events',(req,res)=>res.json({events:VALID}));
+r.get('/',async(req,res)=>{const h=await Webhooks.byTenant(req.tenantId);res.json(h.map(x=>({...x,secret:x.secret?'••••••••':null})));});
+r.post('/',async(req,res)=>{const{url,events,name,description,secret,custom_headers}=req.body;if(!url)return res.status(400).json({error:'url required'});if(!events?.length)return res.status(400).json({error:'events array required'});try{new URL(url);}catch{return res.status(400).json({error:'Invalid URL'});}const inv=events.filter(e=>e!=='*'&&!VALID.includes(e));if(inv.length)return res.status(400).json({error:`Invalid events: ${inv.join(', ')}`});const h=await Webhooks.create({tenant_id:req.tenantId,created_by:req.user._id,url,events,name:name||url,description:description||'',secret:secret||crypto.randomBytes(32).toString('hex'),custom_headers:custom_headers||{}});res.status(201).json(h);});
+r.get('/:id',async(req,res)=>{const h=await Webhooks.get(req.params.id);if(!h||h.tenant_id!==req.tenantId)return res.status(404).json({error:'Not found'});res.json({...h,secret:h.secret?'••••••••':null});});
+r.patch('/:id',async(req,res)=>{const h=await Webhooks.get(req.params.id);if(!h||h.tenant_id!==req.tenantId)return res.status(404).json({error:'Not found'});res.json(await Webhooks.update(req.params.id,req.body));});
+r.delete('/:id',async(req,res)=>{const h=await Webhooks.get(req.params.id);if(!h||h.tenant_id!==req.tenantId)return res.status(404).json({error:'Not found'});await Webhooks.delete(req.params.id);res.json({deleted:true});});
+r.post('/:id/test',async(req,res)=>{const h=await Webhooks.get(req.params.id);if(!h||h.tenant_id!==req.tenantId)return res.status(404).json({error:'Not found'});await dispatchEvent(req.tenantId,'call.created',{test:true,call_id:'test-'+Date.now()});res.json({message:'Test dispatched'});});
+r.get('/:id/logs',async(req,res)=>{const h=await Webhooks.get(req.params.id);if(!h||h.tenant_id!==req.tenantId)return res.status(404).json({error:'Not found'});res.json(await WebhookLogs.byWebhook(req.params.id,parseInt(req.query.limit)||50));});
+r.post('/:id/regenerate-secret',async(req,res)=>{const h=await Webhooks.get(req.params.id);if(!h||h.tenant_id!==req.tenantId)return res.status(404).json({error:'Not found'});const s=crypto.randomBytes(32).toString('hex');await Webhooks.update(req.params.id,{secret:s});res.json({secret:s,warning:'Update your endpoint immediately'});});
+export default r;

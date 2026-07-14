@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base{body{@apply bg-gray-950 text-gray-100 font-sans antialiased;}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{@apply bg-gray-700 rounded}}
+@layer components{
+.card{@apply bg-gray-900 border border-gray-800 rounded-xl p-4}
+.btn{@apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all}
+.btn-primary{@apply btn bg-emerald-600 hover:bg-emerald-500 text-white}
+.btn-secondary{@apply btn bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700}
+.btn-danger{@apply btn bg-red-600 hover:bg-red-500 text-white}
+.input{@apply w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500}
+.badge{@apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium}
+.badge-green{@apply badge bg-emerald-900/50 text-emerald-400 border border-emerald-800}
+.badge-red{@apply badge bg-red-900/50 text-red-400 border border-red-800}
+.badge-yellow{@apply badge bg-yellow-900/50 text-yellow-400 border border-yellow-800}
+.badge-blue{@apply badge bg-blue-900/50 text-blue-400 border border-blue-800}
+.badge-gray{@apply badge bg-gray-800 text-gray-400 border border-gray-700}
+.badge-purple{@apply badge bg-purple-900/50 text-purple-400 border border-purple-800}
+}

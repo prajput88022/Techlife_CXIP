@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { requireAuth } from '../middleware/auth.js';
+import { Customers } from '../../db/couch.js';
+const r=Router();r.use(requireAuth);
+r.get('/',async(req,res)=>res.json(await Customers.byTenant(req.tenantId)));
+r.get('/high-churn',async(req,res)=>res.json(await Customers.highChurnRisk(req.tenantId,parseFloat(req.query.threshold)||0.5)));
+r.post('/',async(req,res)=>res.status(201).json(await Customers.create({...req.body,tenant_id:req.tenantId})));
+r.get('/:id',async(req,res)=>{const c=await Customers.get(req.params.id);c?res.json(c):res.status(404).json({error:'Not found'});});
+r.patch('/:id',async(req,res)=>res.json(await Customers.update(req.params.id,req.body)));
+export default r;
