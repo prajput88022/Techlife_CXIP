@@ -1,5 +1,5 @@
-# Tech-Life CXIP â€” Installation Guide
-## Debian 12 / 13 Â· CouchDB Â· Node.js 20 Â· Redis Â· Nginx
+# Tech-Life CXIP Installation Guide
+## Debian 12 / 13 
 
 ## Quick Install (one command)
 ```bash
