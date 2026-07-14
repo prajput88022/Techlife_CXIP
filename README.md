@@ -123,10 +123,10 @@ cxip_sla, cxip_webhooks, cxip_webhook_logs, cxip_api_keys
 - Click any call to open the word-sync player
 - Words highlight as they are spoken (simulated in demo)
 - Violation words highlighted in BOTH English and translation lines:
-  - ðŸ”´ Red = PCI / card data
-  - ðŸŸ¡ Yellow = Wrong policy stated
-  - ðŸŸ  Orange = Rude / aggressive tone
-  - ðŸŸ¢ Green = Competitor mention
+  -  Red = PCI / card data
+  -  Yellow = Wrong policy stated
+  -  Orange = Rude / aggressive tone
+  - Green = Competitor mention
 - Live alert banner appears when violation segment is playing
 - Language selector: Arabic, French, Spanish, German, Chinese, Turkish, Portuguese, Hindi
 - Emotion timeline strip shows sentiment across the full call
